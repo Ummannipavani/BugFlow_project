@@ -1,0 +1,6 @@
+{
+  "name": "Intelligent Software Defect Tracking System with Resolution Assistance",
+  "description": "Full-stack intelligent software defect tracking and resolution assistance platform with PostgreSQL persistence, strict state transitions, AI classification, similar bug detection, and resolution guidance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

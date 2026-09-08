@@ -1,0 +1,251 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Sarah Connor",
+      "email": "admin@bugflow.io",
+      "role": "Admin",
+      "avatar": "SC"
+    },
+    {
+      "id": 2,
+      "name": "Alex Rivera",
+      "email": "dev@bugflow.io",
+      "role": "Developer",
+      "avatar": "AR"
+    },
+    {
+      "id": 3,
+      "name": "Elena Rostova",
+      "email": "qa@bugflow.io",
+      "role": "User / QA",
+      "avatar": "ER"
+    },
+    {
+      "id": 4,
+      "name": "David Kim",
+      "email": "user@bugflow.io",
+      "role": "User / QA",
+      "avatar": "DK"
+    }
+  ],
+  "projects": [
+    {
+      "id": 1788440610721,
+      "name": "Admin Verified Project",
+      "key": "AVP",
+      "category": "Core Platform",
+      "description": "No project description provided.",
+      "issueCount": 0,
+      "createdAt": "2026-09-03"
+    },
+    {
+      "id": 1,
+      "name": "BugFlow Core",
+      "key": "BFC",
+      "category": "Core Platform",
+      "description": "Main issue tracking engine and workflow orchestration backend.",
+      "issueCount": 3,
+      "createdAt": "2026-07-15"
+    },
+    {
+      "id": 2,
+      "name": "API Gateway",
+      "key": "GW",
+      "category": "Backend",
+      "description": "OAuth2 authentication proxy and microservice REST routing layer.",
+      "issueCount": 1,
+      "createdAt": "2026-07-20"
+    },
+    {
+      "id": 3,
+      "name": "React SDK",
+      "key": "SDK",
+      "category": "Frontend",
+      "description": "Client library for integrating BugFlow widget into web apps.",
+      "issueCount": 1,
+      "createdAt": "2026-07-25"
+    }
+  ],
+  "sprints": [
+    {
+      "id": 1,
+      "name": "Sprint 14: Core Stability",
+      "projectId": 1,
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-15",
+      "goal": "Resolve OAuth token and activity logging race conditions.",
+      "status": "Active",
+      "createdAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "Sprint 15: AI Intelligence",
+      "projectId": 1,
+      "startDate": "2026-08-16",
+      "endDate": "2026-08-30",
+      "goal": "Integrate Gemini defect classification and duplicate detection.",
+      "status": "Planned",
+      "createdAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": 3,
+      "name": "Sprint 8: Gateway Resiliency",
+      "projectId": 2,
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-15",
+      "goal": "Fix CORS preflight headers and staging redirect loops.",
+      "status": "Active",
+      "createdAt": "2026-08-01T08:00:00Z"
+    }
+  ],
+  "issues": [
+    {
+      "id": 1042,
+      "key": "BF-1042",
+      "title": "OAuth2 redirect loop on staging environment",
+      "description": "### 📌 Overview\nWhen logging in via SSO on staging, the server loops endlessly between /auth/callback and /login due to missing CORS headers.\n\n### 🔁 Steps to Reproduce\n1. Launch staging web portal.\n2. Click \"Sign in with SSO\".\n3. Observe endless browser redirect loops.\n\n### 🎯 Expected Result\nRedirects to /dashboard with JWT token.\n\n### ⚠️ Actual Result\n401 Unauthorized CORS preflight error.",
+      "status": "Open",
+      "priority": "Critical",
+      "severity": "Blocker",
+      "environment": "Staging Web Portal (Chrome v125)",
+      "issueType": "Security",
+      "category": "Security / Auth",
+      "projectName": "API Gateway",
+      "projectId": 2,
+      "assigneeName": "Sarah Connor",
+      "assigneeRole": "Admin",
+      "createdAt": "2026-07-31T08:30:00Z",
+      "comments": [
+        {
+          "id": 1,
+          "userName": "Alex Rivera",
+          "body": "Inspected network logs. Header Access-Control-Allow-Origin is set to wildcard instead of staging domain.",
+          "createdAt": "2026-07-31T09:15:00Z"
+        }
+      ],
+      "activityLogs": [
+        {
+          "oldStatus": "Created",
+          "newStatus": "Open",
+          "timestamp": "2026-07-31T08:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": 1045,
+      "key": "BF-1045",
+      "title": "Missing ActivityLog for bulk status updates",
+      "description": "### 📌 Overview\nBulk editing issues through the table view fails to insert audit trail records in PostgreSQL.\n\n### 🔁 Steps to Reproduce\n1. Select 3 issues on Kanban.\n2. Click \"Bulk Move to In Review\".\n3. Check activity_logs DB table.\n\n### 🎯 Expected Result\nAudit records generated for each transition.",
+      "status": "Open",
+      "priority": "High",
+      "severity": "Major",
+      "environment": "Production PostgreSQL v16",
+      "issueType": "Backend/API",
+      "category": "Database / ORM",
+      "projectName": "BugFlow Core",
+      "projectId": 1,
+      "assigneeName": "Alex Rivera",
+      "assigneeRole": "Developer",
+      "createdAt": "2026-07-31T07:45:00Z",
+      "comments": [],
+      "activityLogs": [
+        {
+          "oldStatus": "Created",
+          "newStatus": "Open",
+          "timestamp": "2026-07-31T07:45:00Z"
+        }
+      ]
+    },
+    {
+      "id": 1039,
+      "key": "BF-1039",
+      "title": "Implement Gemini-3.6 refinement prompt pipeline",
+      "description": "### 📌 Overview\nIntegrate AI bug report refiner with structured Markdown output and spec profiling questions.\n\n### 🔁 Steps to Reproduce\n1. Open AI Refiner modal.\n2. Input raw bug notes.\n3. Trigger Gemini generation.",
+      "status": "In Progress",
+      "priority": "High",
+      "severity": "Major",
+      "environment": "Production iOS App v2.4",
+      "issueType": "AI Pipeline",
+      "category": "AI Pipeline",
+      "projectName": "BugFlow Core",
+      "projectId": 1,
+      "assigneeName": "Alex Rivera",
+      "assigneeRole": "Developer",
+      "createdAt": "2026-07-30T14:20:00Z",
+      "comments": [
+        {
+          "id": 1,
+          "userName": "Elena Rostova",
+          "body": "QA tested sample prompts. Structure matches expected JSON schema perfectly.",
+          "createdAt": "2026-07-30T16:00:00Z"
+        }
+      ],
+      "activityLogs": [
+        {
+          "oldStatus": "Open",
+          "newStatus": "In Progress",
+          "timestamp": "2026-07-30T15:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": 1031,
+      "key": "BF-1031",
+      "title": "Update favicon and web app manifest metadata",
+      "description": "Replace standard Vite icon with high-density BugFlow vector logo and configure requestFramePermissions.",
+      "status": "In Review",
+      "priority": "Low",
+      "severity": "Minor",
+      "environment": "Production Web Portal",
+      "issueType": "UI/UX",
+      "category": "UI/UX",
+      "projectName": "React SDK",
+      "projectId": 3,
+      "assigneeName": "Elena Rostova",
+      "assigneeRole": "QA",
+      "createdAt": "2026-07-29T11:10:00Z",
+      "comments": [
+        {
+          "id": 1,
+          "userName": "David Kim",
+          "body": "Design assets LGTM.",
+          "createdAt": "2026-07-29T13:00:00Z"
+        }
+      ],
+      "activityLogs": [
+        {
+          "oldStatus": "In Progress",
+          "newStatus": "In Review",
+          "timestamp": "2026-07-30T10:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": 1022,
+      "key": "BF-1022",
+      "title": "Setup Drizzle ORM PostgreSQL migrations schema",
+      "description": "Configured Drizzle config and schema definition with strict foreign key constraints and indexed status columns.",
+      "status": "Resolved",
+      "priority": "Medium",
+      "severity": "Minor",
+      "environment": "Production API Gateway",
+      "issueType": "Database",
+      "category": "Database / ORM",
+      "projectName": "BugFlow Core",
+      "projectId": 1,
+      "assigneeName": "Alex Rivera",
+      "assigneeRole": "Developer",
+      "createdAt": "2026-07-28T09:00:00Z",
+      "comments": [],
+      "activityLogs": [
+        {
+          "oldStatus": "In Review",
+          "newStatus": "Resolved",
+          "timestamp": "2026-07-28T17:30:00Z"
+        }
+      ]
+    }
+  ],
+  "chatMessages": []
+}
