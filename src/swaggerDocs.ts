@@ -116,13 +116,26 @@ export const openapiSpec = {
           openDefects: { type: "integer", example: 7 },
           resolvedDefects: { type: "integer", example: 5 },
           closedDefects: { type: "integer", example: 3 },
+          reopenedDefects: { type: "integer", example: 1 },
           avgResolutionHours: { type: "number", nullable: true, example: 14.5 },
-          avgResolutionDisplay: { type: "string", example: "14.5 hours" },
+          avgResolutionDisplay: { type: "string", example: "14.5 hrs" },
+          mttrBySeverity: { type: "object" },
+          criticalRatio: { type: "number", example: 20.0 },
+          criticalRatioDisplay: { type: "string", example: "20.0%" },
           defectsBySeverity: { type: "object", example: { Critical: 3, High: 5, Medium: 4, Low: 3 } },
           defectsByCategory: { type: "object", example: { "Frontend": 6, "Security / Auth": 4, "Database / ORM": 3, "Backend": 2 } },
+          topCategories: { type: "array", items: { type: "object" } },
+          affectedComponents: { type: "array", items: { type: "object" } },
+          repeatedDefects: { type: "array", items: { type: "object" } },
+          repeatedDefectsCount: { type: "integer", example: 2 },
+          similarDefects: { type: "array", items: { type: "object" } },
+          similarDefectsCount: { type: "integer", example: 4 },
           defectsByStatus: { type: "object", example: { "Reported": 3, "In Progress": 4, "Resolved": 5, "Closed": 3 } },
+          defectBacklog: { type: "object" },
           developerWorkload: { type: "array", items: { type: "object" } },
-          defectTrends: { type: "array", items: { type: "object" } }
+          defectTrends: { type: "array", items: { type: "object" } },
+          criticalDefectTrends: { type: "array", items: { type: "object" } },
+          sprintDefectTrends: { type: "array", items: { type: "object" } }
         }
       }
     }
@@ -304,15 +317,71 @@ export const openapiSpec = {
         }
       }
     },
+    "/api/analytics/top-categories": {
+      get: {
+        tags: ["Analytics"],
+        summary: "Get ranked list of most common defect categories with counts, critical counts, and percentages",
+        parameters: [{ name: "project_id", in: "query", schema: { type: "integer" } }],
+        responses: { 200: { description: "Ranked categories array" } }
+      }
+    },
+    "/api/analytics/components": {
+      get: {
+        tags: ["Analytics"],
+        summary: "Get most affected platform components and modules with open, resolved, and critical counts",
+        parameters: [{ name: "project_id", in: "query", schema: { type: "integer" } }],
+        responses: { 200: { description: "Affected components array" } }
+      }
+    },
+    "/api/analytics/repeated": {
+      get: {
+        tags: ["Analytics"],
+        summary: "Get repeated and recurring defect patterns with occurrence count and reopened frequency",
+        parameters: [{ name: "project_id", in: "query", schema: { type: "integer" } }],
+        responses: { 200: { description: "Repeated defect patterns" } }
+      }
+    },
+    "/api/analytics/similar": {
+      get: {
+        tags: ["Analytics"],
+        summary: "Get detected similar defect pairs across the workspace with similarity percentages",
+        parameters: [{ name: "project_id", in: "query", schema: { type: "integer" } }],
+        responses: { 200: { description: "Similar defect pairs" } }
+      }
+    },
+    "/api/analytics/backlog": {
+      get: {
+        tags: ["Analytics"],
+        summary: "Get active defect backlog with priority breakdown, unassigned count, and aging (<7d, 7-30d, >30d)",
+        parameters: [{ name: "project_id", in: "query", schema: { type: "integer" } }],
+        responses: { 200: { description: "Defect backlog breakdown and aging" } }
+      }
+    },
+    "/api/analytics/sprints": {
+      get: {
+        tags: ["Analytics"],
+        summary: "Get sprint defect trends and completion rate velocity across sprints",
+        parameters: [{ name: "project_id", in: "query", schema: { type: "integer" } }],
+        responses: { 200: { description: "Sprint defect trends" } }
+      }
+    },
+    "/api/analytics/critical-trends": {
+      get: {
+        tags: ["Analytics"],
+        summary: "Get critical defect discovery trends by date",
+        parameters: [{ name: "project_id", in: "query", schema: { type: "integer" } }],
+        responses: { 200: { description: "Critical defect trends" } }
+      }
+    },
     "/api/analytics/resolution-time": {
       get: {
         tags: ["Analytics"],
-        summary: "Get average defect resolution time in hours and formatted display",
+        summary: "Get average defect resolution time (MTTR) overall and by severity",
         parameters: [
           { name: "project_id", in: "query", schema: { type: "integer" }, description: "Optional project ID filter" }
         ],
         responses: {
-          200: { description: "Average resolution hours and display string" }
+          200: { description: "Average resolution hours, display string, and MTTR by severity" }
         }
       }
     },

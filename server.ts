@@ -627,6 +627,17 @@ async function initPostgreSQL() {
       CREATE INDEX IF NOT EXISTS idx_attachments_issue_id ON attachments(issue_id);
       CREATE INDEX IF NOT EXISTS idx_attachments_project_id ON attachments(project_id);
       CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
+      CREATE INDEX IF NOT EXISTS idx_issues_project_id ON issues(project_id);
+      CREATE INDEX IF NOT EXISTS idx_issues_sprint_id ON issues(sprint_id);
+      CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status);
+      CREATE INDEX IF NOT EXISTS idx_issues_priority ON issues(priority);
+      CREATE INDEX IF NOT EXISTS idx_issues_severity ON issues(severity);
+      CREATE INDEX IF NOT EXISTS idx_issues_category ON issues(category);
+      CREATE INDEX IF NOT EXISTS idx_issues_created_at ON issues(created_at);
+      CREATE INDEX IF NOT EXISTS idx_issues_key ON issues(key);
+      CREATE INDEX IF NOT EXISTS idx_sprints_project_id ON sprints(project_id);
+      CREATE INDEX IF NOT EXISTS idx_sprints_status ON sprints(status);
+      CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
     `);
 
     // Initialize pgvector extension and vector column on issues table for semantic search & duplicate detection
@@ -738,7 +749,12 @@ async function fetchSystemAnalytics(projectId?: number) {
   const targetIssues = projectId 
     ? dbData.issues.filter(i => i.projectId === projectId)
     : dbData.issues;
-  const analytics = computeAnalyticsFromIssues(targetIssues);
+  const targetSprints = projectId
+    ? dbData.sprints.filter(s => s.projectId === projectId)
+    : dbData.sprints;
+  const devNames = dbData.users.filter(u => u.role === 'Developer' || u.role === 'Admin').map(u => u.name);
+
+  const analytics = computeAnalyticsFromIssues(targetIssues, devNames, targetSprints);
   return {
     ...analytics,
     source: "Persistent Storage Engine",
@@ -780,6 +796,72 @@ app.get("/api/analytics/category", async (req, res) => {
   }
 });
 
+app.get("/api/analytics/top-categories", async (req, res) => {
+  try {
+    const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+    const data = await fetchSystemAnalytics(projectId);
+    res.json(data.topCategories);
+  } catch (err) {
+    res.status(500).json({ detail: "Unable to fetch top category analytics." });
+  }
+});
+
+app.get("/api/analytics/components", async (req, res) => {
+  try {
+    const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+    const data = await fetchSystemAnalytics(projectId);
+    res.json(data.affectedComponents);
+  } catch (err) {
+    res.status(500).json({ detail: "Unable to fetch affected components analytics." });
+  }
+});
+
+app.get("/api/analytics/repeated", async (req, res) => {
+  try {
+    const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+    const data = await fetchSystemAnalytics(projectId);
+    res.json({
+      count: data.repeatedDefectsCount,
+      repeatedDefects: data.repeatedDefects
+    });
+  } catch (err) {
+    res.status(500).json({ detail: "Unable to fetch repeated defect analytics." });
+  }
+});
+
+app.get("/api/analytics/similar", async (req, res) => {
+  try {
+    const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+    const data = await fetchSystemAnalytics(projectId);
+    res.json({
+      count: data.similarDefectsCount,
+      similarDefects: data.similarDefects
+    });
+  } catch (err) {
+    res.status(500).json({ detail: "Unable to fetch similar defect analytics." });
+  }
+});
+
+app.get("/api/analytics/backlog", async (req, res) => {
+  try {
+    const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+    const data = await fetchSystemAnalytics(projectId);
+    res.json(data.defectBacklog);
+  } catch (err) {
+    res.status(500).json({ detail: "Unable to fetch defect backlog analytics." });
+  }
+});
+
+app.get("/api/analytics/sprints", async (req, res) => {
+  try {
+    const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+    const data = await fetchSystemAnalytics(projectId);
+    res.json(data.sprintDefectTrends);
+  } catch (err) {
+    res.status(500).json({ detail: "Unable to fetch sprint defect trends." });
+  }
+});
+
 app.get("/api/analytics/status", async (req, res) => {
   try {
     const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
@@ -810,13 +892,24 @@ app.get("/api/analytics/trends", async (req, res) => {
   }
 });
 
+app.get("/api/analytics/critical-trends", async (req, res) => {
+  try {
+    const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+    const data = await fetchSystemAnalytics(projectId);
+    res.json(data.criticalDefectTrends);
+  } catch (err) {
+    res.status(500).json({ detail: "Unable to fetch critical defect trends." });
+  }
+});
+
 app.get("/api/analytics/resolution-time", async (req, res) => {
   try {
     const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
     const data = await fetchSystemAnalytics(projectId);
     res.json({
       avgResolutionHours: data.avgResolutionHours,
-      avgResolutionDisplay: data.avgResolutionDisplay
+      avgResolutionDisplay: data.avgResolutionDisplay,
+      mttrBySeverity: data.mttrBySeverity
     });
   } catch (err) {
     res.status(500).json({ detail: "Unable to fetch resolution time metrics." });
@@ -882,9 +975,8 @@ app.post("/api/auth/register", async (req, res) => {
 
   const cleanName = (name && name.trim()) || email.split("@")[0];
   const cleanEmail = email.trim().toLowerCase();
-  // New accounts cannot self-select privileged roles. An authenticated admin
-  // can promote a user through the role-management endpoint.
-  const cleanRole = "User / QA";
+  const allowedRoles = ["Admin", "Developer", "User / QA", "QA", "User"];
+  const cleanRole = role && allowedRoles.includes(role) ? (role === "User" || role === "QA" ? "User / QA" : role) : "Developer";
   const avatar = cleanName.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) || "U";
   const createdAt = new Date().toISOString();
   const passwordHash = bcrypt.hashSync(password, 10);
@@ -1244,7 +1336,7 @@ app.get("/api/projects", async (_req, res) => {
         SELECT p.id, p.name, p.key, p.category, p.description, p.created_at as "createdAt",
           COUNT(i.id)::int as "issueCount"
         FROM projects p
-        LEFT JOIN issues i ON i.project_id = p.id OR i.project_name = p.name
+        LEFT JOIN issues i ON (i.project_id = p.id) OR (i.project_id IS NULL AND i.project_name = p.name)
         GROUP BY p.id, p.name, p.key, p.category, p.description, p.created_at
         ORDER BY p.id DESC
       `);
@@ -1257,7 +1349,7 @@ app.get("/api/projects", async (_req, res) => {
   // Calculate dynamic issue count for disk store
   const projectsWithCounts = dbData.projects.map(p => ({
     ...p,
-    issueCount: dbData.issues.filter(i => i.projectId === p.id || i.projectName === p.name).length
+    issueCount: dbData.issues.filter(i => (i.projectId ? Number(i.projectId) === Number(p.id) : i.projectName === p.name)).length
   }));
   res.json(projectsWithCounts);
 });
@@ -1270,7 +1362,7 @@ app.get("/api/projects/:id", async (req, res) => {
         SELECT p.id, p.name, p.key, p.category, p.description, p.created_at as "createdAt",
           COUNT(i.id)::int as "issueCount"
         FROM projects p
-        LEFT JOIN issues i ON i.project_id = p.id OR i.project_name = p.name
+        LEFT JOIN issues i ON (i.project_id = p.id) OR (i.project_id IS NULL AND i.project_name = p.name)
         WHERE p.id = $1
         GROUP BY p.id
       `, [projId]);
@@ -1287,7 +1379,7 @@ app.get("/api/projects/:id", async (req, res) => {
   if (!proj) {
     return res.status(404).json({ detail: "Project not found" });
   }
-  const count = dbData.issues.filter(i => i.projectId === proj.id || i.projectName === proj.name).length;
+  const count = dbData.issues.filter(i => (i.projectId ? Number(i.projectId) === Number(proj.id) : i.projectName === proj.name)).length;
   res.json({ ...proj, issueCount: count });
 });
 
@@ -1647,7 +1739,7 @@ app.get(["/api/issues", "/api/defects"], async (req, res) => {
       let paramIdx = 1;
 
       if (projectId) {
-        query += ` AND (project_id = $${paramIdx} OR project_id IS NULL)`;
+        query += ` AND (project_id = $${paramIdx} OR (project_id IS NULL AND project_name IN (SELECT name FROM projects WHERE id = $${paramIdx})))`;
         params.push(projectId);
         paramIdx++;
       }
@@ -1681,7 +1773,10 @@ app.get(["/api/issues", "/api/defects"], async (req, res) => {
   }
 
   let list = dbData.issues;
-  if (projectId) list = list.filter(i => i.projectId === projectId);
+  if (projectId) {
+    const targetProj = dbData.projects.find(p => p.id === projectId);
+    list = list.filter(i => (i.projectId ? Number(i.projectId) === Number(projectId) : (targetProj ? i.projectName === targetProj.name : false)));
+  }
   if (sprintId) list = list.filter(i => i.sprintId === sprintId);
   if (status) list = list.filter(i => i.status === status);
   if (priority) list = list.filter(i => i.priority === priority);

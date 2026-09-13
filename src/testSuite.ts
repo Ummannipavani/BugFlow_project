@@ -46,13 +46,28 @@ async function runTestSuite() {
     assert(semanticData.results.length > 0 && typeof semanticData.results[0].similarity_score === 'number', 'Semantic search returns valid cosine similarity scores');
 
     // 3. Analytics Endpoint
-    console.log('\n🔹 3. Testing Real PostgreSQL Analytics Endpoint...');
+    console.log('\n🔹 3. Testing Real PostgreSQL Analytics & 10 Defect Insights...');
     const analyticsRes = await fetch(`${BASE_URL}/api/analytics`);
     const analyticsData = await analyticsRes.json();
     assert(analyticsRes.status === 200, 'Analytics endpoint returns 200 OK');
-    assert(typeof analyticsData.totalDefects === 'number', 'Analytics contains totalDefects aggregation');
-    assert(Array.isArray(analyticsData.developerWorkload), 'Analytics computes developer workload breakdown');
-    assert(Array.isArray(analyticsData.defectTrends), 'Analytics computes defect discovery trends');
+    assert(typeof analyticsData.totalDefects === 'number', 'Insight 1: Analytics contains totalDefects aggregation');
+    assert(Array.isArray(analyticsData.topCategories), 'Insight 2: Analytics computes most common categories ranking');
+    assert(Array.isArray(analyticsData.affectedComponents), 'Insight 3: Analytics computes most affected components');
+    assert(Array.isArray(analyticsData.repeatedDefects), 'Insight 4: Analytics detects repeated defect patterns');
+    assert(Array.isArray(analyticsData.similarDefects), 'Insight 5: Analytics detects similar defect pairs');
+    assert(typeof analyticsData.avgResolutionDisplay === 'string', 'Insight 6: Analytics computes average resolution time (MTTR)');
+    assert(typeof analyticsData.criticalRatioDisplay === 'string', 'Insight 7: Analytics computes critical defect ratio');
+    assert(analyticsData.defectBacklog && typeof analyticsData.defectBacklog.totalBacklog === 'number', 'Insight 8: Analytics computes active defect backlog & aging');
+    assert(Array.isArray(analyticsData.developerWorkload), 'Insight 9: Analytics computes developer workload breakdown');
+    assert(Array.isArray(analyticsData.sprintDefectTrends), 'Insight 10: Analytics computes sprint defect trends');
+
+    // Dedicated Sub-endpoints
+    const backlogRes = await fetch(`${BASE_URL}/api/analytics/backlog`);
+    assert(backlogRes.status === 200, 'Dedicated /api/analytics/backlog sub-endpoint returns 200 OK');
+    const sprintsRes = await fetch(`${BASE_URL}/api/analytics/sprints`);
+    assert(sprintsRes.status === 200, 'Dedicated /api/analytics/sprints sub-endpoint returns 200 OK');
+    const compRes = await fetch(`${BASE_URL}/api/analytics/components`);
+    assert(compRes.status === 200, 'Dedicated /api/analytics/components sub-endpoint returns 200 OK');
 
     // Authenticate using real PostgreSQL users. The API no longer trusts spoofable identity headers.
     const login = async (email: string, role: string) => {

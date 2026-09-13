@@ -12,7 +12,16 @@ import {
   ArrowUpRight,
   RefreshCw,
   Folder,
-  Database
+  Database,
+  Calendar,
+  Sparkles,
+  GitBranch,
+  Hourglass,
+  Copy,
+  AlertOctagon,
+  Target,
+  CheckCircle,
+  Activity
 } from 'lucide-react';
 
 export default function AnalyticsDashboard({ projects = [], activeProjectId, onSelectProject }) {
@@ -42,46 +51,28 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
     fetchAnalytics(selectedProjId);
   }, [selectedProjId]);
 
-  const severityColors = {
-    Critical: 'bg-rose-500 text-rose-100',
-    High: 'bg-orange-500 text-orange-100',
-    Medium: 'bg-amber-500 text-amber-100',
-    Low: 'bg-emerald-500 text-emerald-100'
-  };
-
-  const statusColors = {
-    'Reported': 'bg-slate-500 text-slate-100',
-    'Assigned': 'bg-purple-500 text-purple-100',
-    'In Progress': 'bg-blue-500 text-blue-100',
-    'In Review': 'bg-amber-500 text-amber-100',
-    'Resolved': 'bg-emerald-500 text-emerald-100',
-    'Verified': 'bg-teal-500 text-teal-100',
-    'Closed': 'bg-slate-400 text-slate-100',
-    'Reopened': 'bg-rose-500 text-rose-100'
-  };
-
   const maxWorkload = analytics?.developerWorkload
     ? Math.max(...analytics.developerWorkload.map(w => w.total), 1)
     : 1;
 
   const maxTrend = analytics?.defectTrends
-    ? Math.max(...analytics.defectTrends.map(t => Math.max(t.reported, t.resolved)), 1)
+    ? Math.max(...analytics.defectTrends.map(t => Math.max(t.reported, t.resolved, t.critical || 0)), 1)
     : 1;
 
   return (
-    <div className="space-y-6" id="analytics-dashboard-view">
+    <div className="space-y-6 pb-12" id="analytics-dashboard-view">
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="analytics-header">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Defect Analytics & Health Metrics</h2>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Intelligent Defect Analytics & Metrics</h2>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
               <Database className="w-3 h-3" />
               Live PostgreSQL Data
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Real-time defect aggregations, workload distribution, and resolution performance computed directly from PostgreSQL.
+            Real-time defect aggregations, workload velocity, MTTR, backlog aging, and pattern intelligence computed directly from database records.
           </p>
         </div>
 
@@ -123,21 +114,23 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
             <span className="text-2xl font-bold text-slate-900">{analytics?.totalDefects ?? 0}</span>
             <span className="text-xs text-slate-500">tickets</span>
           </div>
-          <div className="mt-2 text-xs text-slate-500">Across active sprints</div>
+          <div className="mt-2 text-xs text-slate-500">Across active workspace</div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" id="card-open-defects">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Open / Active</span>
+            <span className="text-xs font-medium text-slate-500">Defect Backlog (Active)</span>
             <span className="p-2 rounded-lg bg-rose-50 text-rose-600"><AlertTriangle className="w-4 h-4" /></span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-rose-600">{analytics?.openDefects ?? 0}</span>
+            <span className="text-2xl font-bold text-rose-600">{analytics?.defectBacklog?.totalBacklog ?? analytics?.openDefects ?? 0}</span>
             <span className="text-xs text-slate-500">
-              ({analytics?.totalDefects ? Math.round((analytics.openDefects / analytics.totalDefects) * 100) : 0}%)
+              ({analytics?.totalDefects ? Math.round(((analytics?.defectBacklog?.totalBacklog ?? analytics?.openDefects ?? 0) / analytics.totalDefects) * 100) : 0}%)
             </span>
           </div>
-          <div className="mt-2 text-xs text-rose-600 font-medium">Requiring resolution</div>
+          <div className="mt-2 text-xs text-rose-600 font-medium">
+            {analytics?.defectBacklog?.unassignedCount ? `${analytics.defectBacklog.unassignedCount} unassigned` : 'Requiring resolution'}
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" id="card-resolved-defects">
@@ -154,40 +147,372 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
           <div className="mt-2 text-xs text-emerald-600 font-medium">Ready for verification</div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" id="card-closed-defects">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" id="card-critical-ratio">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Closed Tickets</span>
-            <span className="p-2 rounded-lg bg-slate-100 text-slate-600"><ShieldAlert className="w-4 h-4" /></span>
+            <span className="text-xs font-medium text-slate-500">Critical Defect Rate</span>
+            <span className="p-2 rounded-lg bg-orange-50 text-orange-600"><Flame className="w-4 h-4" /></span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-800">{analytics?.closedDefects ?? 0}</span>
+            <span className="text-2xl font-bold text-orange-600">{analytics?.criticalRatioDisplay ?? '0%'}</span>
             <span className="text-xs text-slate-500">
-              ({analytics?.totalDefects ? Math.round((analytics.closedDefects / analytics.totalDefects) * 100) : 0}%)
+              ({analytics?.defectsBySeverity?.Critical ?? 0} tickets)
             </span>
           </div>
-          <div className="mt-2 text-xs text-slate-500">Completed lifecycle</div>
+          <div className="mt-2 text-xs text-orange-600 font-medium">Severity impact ratio</div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm" id="card-resolution-time">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Avg Resolution Time</span>
+            <span className="text-xs font-medium text-slate-500">Avg Resolution (MTTR)</span>
             <span className="p-2 rounded-lg bg-amber-50 text-amber-600"><Clock className="w-4 h-4" /></span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-xl font-bold text-slate-900">{analytics?.avgResolutionDisplay || 'N/A'}</span>
           </div>
-          <div className="mt-2 text-xs text-slate-500">Mean time to resolve (MTTR)</div>
+          <div className="mt-2 text-xs text-slate-500">Mean time to resolve</div>
         </div>
       </div>
 
-      {/* Visual Analytics Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="analytics-charts-grid">
-        {/* Severity Distribution */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="chart-severity-distribution">
+      {/* Grid 1: Most Common Defect Categories & Most Affected Components */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Most Common Defect Categories */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-common-categories">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Defects by Severity</h3>
-              <p className="text-xs text-slate-500">Impact classification</p>
+              <h3 className="text-sm font-bold text-slate-900">1. Most Common Defect Categories</h3>
+              <p className="text-xs text-slate-500">Frequency breakdown by functional category</p>
+            </div>
+            <Layers className="w-4 h-4 text-indigo-500" />
+          </div>
+
+          <div className="space-y-3">
+            {analytics?.topCategories && analytics.topCategories.length > 0 ? (
+              analytics.topCategories.map((cat) => (
+                <div key={cat.category} className="space-y-1">
+                  <div className="flex justify-between items-center text-xs font-medium">
+                    <span className="text-slate-800 font-semibold">{cat.category}</span>
+                    <div className="flex items-center gap-2">
+                      {cat.criticalCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-600 border border-rose-200">
+                          {cat.criticalCount} critical
+                        </span>
+                      )}
+                      <span className="text-slate-900 font-bold">{cat.count} ({cat.percentage}%)</span>
+                    </div>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                      style={{ width: `${cat.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-slate-400 py-6 text-center">No category data recorded.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Most Affected Components */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-affected-components">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">2. Most Affected Components & Modules</h3>
+              <p className="text-xs text-slate-500">Defect density distribution across platform modules</p>
+            </div>
+            <ShieldAlert className="w-4 h-4 text-rose-500" />
+          </div>
+
+          <div className="space-y-3">
+            {analytics?.affectedComponents && analytics.affectedComponents.length > 0 ? (
+              analytics.affectedComponents.map((comp) => (
+                <div key={comp.component} className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+                  <div className="min-w-0 pr-3">
+                    <div className="text-xs font-bold text-slate-900 truncate">{comp.component}</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                      <span className="text-rose-600 font-medium">{comp.openDefects} open</span>
+                      <span>•</span>
+                      <span className="text-emerald-600 font-medium">{comp.resolvedDefects} resolved</span>
+                      {comp.criticalDefects > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-orange-600 font-semibold">{comp.criticalDefects} critical</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-sm font-bold text-slate-900">{comp.totalDefects}</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">({comp.percentage}%)</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-slate-400 py-6 text-center">No component records found.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid 2: Defect Backlog & Aging & MTTR by Severity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Defect Backlog & Aging */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-defect-backlog">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">3. Defect Backlog & Aging Analysis</h3>
+              <p className="text-xs text-slate-500">Unresolved defect volume and ticket age distribution</p>
+            </div>
+            <Hourglass className="w-4 h-4 text-amber-500" />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100 text-center">
+              <div className="text-[11px] font-semibold text-emerald-700">&lt; 7 Days</div>
+              <div className="text-lg font-bold text-emerald-900 mt-0.5">{analytics?.defectBacklog?.aging?.under7Days ?? 0}</div>
+              <div className="text-[10px] text-emerald-600">Fresh defects</div>
+            </div>
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-center">
+              <div className="text-[11px] font-semibold text-amber-700">7 – 30 Days</div>
+              <div className="text-lg font-bold text-amber-900 mt-0.5">{analytics?.defectBacklog?.aging?.between7And30Days ?? 0}</div>
+              <div className="text-[10px] text-amber-600">Pending review</div>
+            </div>
+            <div className="p-3 bg-rose-50 rounded-lg border border-rose-100 text-center">
+              <div className="text-[11px] font-semibold text-rose-700">&gt; 30 Days</div>
+              <div className="text-lg font-bold text-rose-900 mt-0.5">{analytics?.defectBacklog?.aging?.over30Days ?? 0}</div>
+              <div className="text-[10px] text-rose-600">Stagnant backlog</div>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <div className="text-xs font-semibold text-slate-700">Backlog by Priority</div>
+            <div className="grid grid-cols-4 gap-2">
+              {['Critical', 'High', 'Medium', 'Low'].map((p) => (
+                <div key={p} className="p-2 bg-slate-50 rounded border border-slate-200 text-center">
+                  <span className="text-[10px] text-slate-500 block">{p}</span>
+                  <span className="text-xs font-bold text-slate-800">{analytics?.defectBacklog?.byPriority?.[p] ?? 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Average Resolution Time (MTTR) by Severity */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-resolution-time">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">4. Average Resolution Time (MTTR)</h3>
+              <p className="text-xs text-slate-500">Mean time from defect report to resolution by severity</p>
+            </div>
+            <Clock className="w-4 h-4 text-teal-500" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-xs font-medium text-slate-500">Overall Platform MTTR</span>
+              <div className="text-2xl font-bold text-slate-900 mt-1">{analytics?.avgResolutionDisplay || 'N/A'}</div>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">Computed across all resolved tickets</span>
+            </div>
+            <div className="p-3.5 bg-rose-50 rounded-xl border border-rose-100">
+              <span className="text-xs font-medium text-rose-700">Critical Defect MTTR</span>
+              <div className="text-2xl font-bold text-rose-900 mt-1">
+                {analytics?.mttrBySeverity?.Critical?.display || 'N/A'}
+              </div>
+              <span className="text-[10px] text-rose-600 mt-0.5 block">
+                {analytics?.mttrBySeverity?.Critical?.count ? `${analytics.mttrBySeverity.Critical.count} critical defects resolved` : 'No critical resolution history'}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-slate-700">Resolution Speed by Severity Level</div>
+            <div className="grid grid-cols-3 gap-2">
+              {['High', 'Medium', 'Low'].map((sev) => (
+                <div key={sev} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                  <span className="text-[10px] font-semibold text-slate-600 block">{sev}</span>
+                  <span className="text-xs font-bold text-slate-900 mt-0.5 block">{analytics?.mttrBySeverity?.[sev]?.display || 'N/A'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid 3: Repeated Defects & Similar Defects Detection */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Repeated Defects Pattern Detection */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-repeated-defects">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">5. Repeated Defect Detection</h3>
+              <p className="text-xs text-slate-500">Recurring defect signatures and reopened defect instances</p>
+            </div>
+            <AlertOctagon className="w-4 h-4 text-orange-500" />
+          </div>
+
+          <div className="space-y-3">
+            {analytics?.repeatedDefects && analytics.repeatedDefects.length > 0 ? (
+              analytics.repeatedDefects.map((rep, idx) => (
+                <div key={idx} className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">{rep.pattern}</div>
+                      <div className="text-[11px] text-slate-600 mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-amber-800">{rep.occurrences} instance(s)</span>
+                        <span>•</span>
+                        <span className="text-slate-500">Keys: {rep.sampleKeys.join(', ')}</span>
+                      </div>
+                    </div>
+                    {rep.reopenedCount > 0 && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 flex-shrink-0">
+                        Reopened {rep.reopenedCount}x
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-slate-400 py-6 text-center">No recurring or repeated defect patterns identified.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Similar Defect Clusters / Pair Detection */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-similar-defects">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">6. Similar Defects & Potential Duplicates</h3>
+              <p className="text-xs text-slate-500">Detected semantic/token similarity pairs across active tickets</p>
+            </div>
+            <Sparkles className="w-4 h-4 text-purple-500" />
+          </div>
+
+          <div className="space-y-3">
+            {analytics?.similarDefects && analytics.similarDefects.length > 0 ? (
+              analytics.similarDefects.slice(0, 4).map((sim, idx) => (
+                <div key={idx} className="p-3 bg-purple-50/60 border border-purple-200 rounded-lg">
+                  <div className="flex items-center justify-between text-xs font-semibold text-purple-900 mb-1">
+                    <span className="truncate">{sim.sourceKey} ↔ {sim.targetKey}</span>
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-100 text-purple-700">
+                      {sim.similarityPercentage}% Match
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 truncate">{sim.sourceTitle}</div>
+                  <div className="text-[11px] text-slate-500 truncate mt-0.5">Related: {sim.targetTitle}</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-slate-400 py-6 text-center">No overlapping similar defect pairs detected.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid 4: Sprint Defect Trends & Developer Workload */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sprint Defect Trends */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-sprint-trends">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">7. Sprint Defect Trends & Velocity</h3>
+              <p className="text-xs text-slate-500">Defect resolution completion rate per agile sprint</p>
+            </div>
+            <Target className="w-4 h-4 text-blue-500" />
+          </div>
+
+          <div className="space-y-3">
+            {analytics?.sprintDefectTrends && analytics.sprintDefectTrends.length > 0 ? (
+              analytics.sprintDefectTrends.map((sp) => (
+                <div key={sp.sprintId} className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="font-bold text-slate-900">{sp.sprintName}</div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${sp.status === 'Active' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
+                        {sp.status}
+                      </span>
+                      <span className="font-bold text-slate-900">{sp.completionRate}% Done</span>
+                    </div>
+                  </div>
+
+                  <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden flex">
+                    <div
+                      className="h-full bg-emerald-500 transition-all duration-500"
+                      style={{ width: `${sp.completionRate}%` }}
+                      title={`${sp.resolvedDefects} resolved`}
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-[11px] text-slate-500">
+                    <span>Total: {sp.totalDefects} defects</span>
+                    <span>{sp.openDefects} open • {sp.resolvedDefects} resolved</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-slate-400 py-6 text-center">No sprint defect trends recorded.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Developer Workload */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-developer-workload">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">8. Developer Workload & Completion Rate</h3>
+              <p className="text-xs text-slate-500">Defect distribution and individual resolution velocity</p>
+            </div>
+            <Users className="w-4 h-4 text-emerald-500" />
+          </div>
+
+          <div className="space-y-3">
+            {analytics?.developerWorkload && analytics.developerWorkload.length > 0 ? (
+              analytics.developerWorkload.map((dev) => {
+                return (
+                  <div key={dev.developer} className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-800 font-semibold">{dev.developer}</span>
+                        <span className="text-[10px] text-emerald-600 font-bold">({dev.completionRate}% resolved)</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-rose-600 font-medium">{dev.open} open</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="text-emerald-600 font-medium">{dev.resolved} resolved</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="text-slate-900 font-bold">{dev.total} total</span>
+                      </div>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                      <div
+                        className="h-full bg-rose-500 transition-all duration-500"
+                        style={{ width: `${dev.total > 0 ? (dev.open / dev.total) * 100 : 0}%` }}
+                        title={`${dev.open} open`}
+                      />
+                      <div
+                        className="h-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${dev.total > 0 ? (dev.resolved / dev.total) * 100 : 0}%` }}
+                        title={`${dev.resolved} resolved`}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-xs text-slate-400 py-6 text-center">No developer workload assignments found.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid 5: Severity Distribution & Lifecycle Status Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Severity Distribution */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-severity-distribution">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">9. Severity Distribution</h3>
+              <p className="text-xs text-slate-500">Defect impact classification</p>
             </div>
             <Flame className="w-4 h-4 text-orange-500" />
           </div>
@@ -217,46 +542,12 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
           </div>
         </div>
 
-        {/* Category Breakdown */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="chart-category-breakdown">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Defects by Category</h3>
-              <p className="text-xs text-slate-500">Architectural modules</p>
-            </div>
-            <Layers className="w-4 h-4 text-indigo-500" />
-          </div>
-
-          <div className="space-y-3">
-            {analytics?.defectsByCategory && Object.entries(analytics.defectsByCategory).map(([cat, count]) => {
-              const total = analytics?.totalDefects || 1;
-              const numericCount = Number(count) || 0;
-              const pct = Math.round((numericCount / total) * 100);
-
-              return (
-                <div key={cat} className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-700 truncate max-w-[200px]">{cat}</span>
-                    <span className="text-slate-900 font-bold">{numericCount} ({pct}%)</span>
-                  </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Lifecycle Status Distribution */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="chart-status-distribution">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-status-distribution">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Defects by Lifecycle Status</h3>
-              <p className="text-xs text-slate-500">Pipeline progression</p>
+              <p className="text-xs text-slate-500">Pipeline progression status</p>
             </div>
             <TrendingUp className="w-4 h-4 text-blue-500" />
           </div>
@@ -270,61 +561,14 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
             ))}
           </div>
         </div>
-
-        {/* Developer Workload */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="chart-developer-workload">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Developer Workload Distribution</h3>
-              <p className="text-xs text-slate-500">Defects assigned per team member</p>
-            </div>
-            <Users className="w-4 h-4 text-emerald-500" />
-          </div>
-
-          <div className="space-y-3">
-            {analytics?.developerWorkload && analytics.developerWorkload.length > 0 ? (
-              analytics.developerWorkload.map((dev) => {
-                const pct = Math.round((dev.total / maxWorkload) * 100);
-                return (
-                  <div key={dev.developer} className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-slate-800 font-semibold">{dev.developer}</span>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-rose-600 font-medium">{dev.open} open</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-emerald-600 font-medium">{dev.resolved} resolved</span>
-                        <span className="text-slate-300">|</span>
-                        <span className="text-slate-900 font-bold">{dev.total} total</span>
-                      </div>
-                    </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                      <div
-                        className="h-full bg-rose-500 transition-all duration-500"
-                        style={{ width: `${(dev.open / dev.total) * 100}%` }}
-                        title={`${dev.open} open`}
-                      />
-                      <div
-                        className="h-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${(dev.resolved / dev.total) * 100}%` }}
-                        title={`${dev.resolved} resolved`}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-xs text-slate-400 py-4 text-center">No developer workload assignments found.</div>
-            )}
-          </div>
-        </div>
       </div>
 
-      {/* Historical Trend Timeline */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="chart-defect-trends">
+      {/* Grid 6: Defect Discovery vs Resolution Velocity Timeline (Insight 10) */}
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-defect-trends">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Defect Discovery vs. Resolution Velocity</h3>
-            <p className="text-xs text-slate-500">Timeline of defects logged vs resolved by date</p>
+            <h3 className="text-sm font-bold text-slate-900">10. Defect Discovery vs. Resolution Velocity Timeline</h3>
+            <p className="text-xs text-slate-500">Historical trend timeline comparing reported, resolved, and critical defects by date</p>
           </div>
           <div className="flex items-center gap-4 text-xs font-medium">
             <span className="flex items-center gap-1.5 text-rose-600">
@@ -335,29 +579,41 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
               Resolved
             </span>
+            <span className="flex items-center gap-1.5 text-orange-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
+              Critical
+            </span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <div className="min-w-[500px] flex items-end gap-3 h-40 pt-4 border-b border-slate-200">
+          <div className="min-w-[500px] flex items-end gap-3 h-44 pt-4 border-b border-slate-200">
             {analytics?.defectTrends && analytics.defectTrends.length > 0 ? (
               analytics.defectTrends.map((trend) => {
                 const repHeight = Math.max(12, Math.round((trend.reported / maxTrend) * 100));
                 const resHeight = Math.max(12, Math.round((trend.resolved / maxTrend) * 100));
+                const critHeight = trend.critical ? Math.max(10, Math.round((trend.critical / maxTrend) * 100)) : 0;
 
                 return (
                   <div key={trend.date} className="flex-1 flex flex-col items-center gap-1 group">
-                    <div className="w-full flex items-end justify-center gap-1 h-28">
+                    <div className="w-full flex items-end justify-center gap-1 h-32">
                       <div
-                        className="w-4 bg-rose-500 rounded-t transition-all group-hover:bg-rose-600"
+                        className="w-3.5 bg-rose-500 rounded-t transition-all group-hover:bg-rose-600"
                         style={{ height: `${repHeight}%` }}
                         title={`${trend.date}: ${trend.reported} reported`}
                       />
                       <div
-                        className="w-4 bg-emerald-500 rounded-t transition-all group-hover:bg-emerald-600"
+                        className="w-3.5 bg-emerald-500 rounded-t transition-all group-hover:bg-emerald-600"
                         style={{ height: `${resHeight}%` }}
                         title={`${trend.date}: ${trend.resolved} resolved`}
                       />
+                      {critHeight > 0 && (
+                        <div
+                          className="w-3.5 bg-orange-500 rounded-t transition-all group-hover:bg-orange-600"
+                          style={{ height: `${critHeight}%` }}
+                          title={`${trend.date}: ${trend.critical} critical`}
+                        />
+                      )}
                     </div>
                     <span className="text-[10px] text-slate-500 truncate w-14 text-center font-medium">
                       {trend.date.slice(5)}

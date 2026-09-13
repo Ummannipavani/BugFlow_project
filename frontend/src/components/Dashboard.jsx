@@ -383,6 +383,7 @@ export default function Dashboard() {
             name: authName.trim() || authEmail.split('@')[0],
             email: authEmail.trim(),
             password: authPassword.trim(),
+            role: authRole || 'Developer',
           })
         });
 
@@ -1177,13 +1178,16 @@ export default function Dashboard() {
       const matchesPriority = priorityFilter === 'ALL' || issue.priority === priorityFilter;
       const matchesSeverity = severityFilter === 'ALL' || issue.severity === severityFilter;
       const matchesCategory = categoryFilter === 'ALL' || issue.category === categoryFilter;
-      const matchesSprint = sprintFilter === 'ALL' || (sprintFilter === 'BACKLOG' ? !issue.sprintId : String(issue.sprintId) === String(sprintFilter));
-      const matchesProject = projectFilter === 'ALL' || String(issue.projectId) === String(projectFilter) || issue.projectName === projectFilter;
+      const targetProjName = projectFilter !== 'ALL' ? projects.find(p => String(p.id) === String(projectFilter) || p.name === projectFilter)?.name : null;
+      const matchesProject = projectFilter === 'ALL' || 
+        String(issue.projectId) === String(projectFilter) || 
+        issue.projectName === projectFilter ||
+        (Boolean(targetProjName) && issue.projectName === targetProjName);
       const matchesStatus = statusFilter === 'ALL' || issue.status === statusFilter;
 
       return matchesSearch && matchesPriority && matchesSeverity && matchesCategory && matchesSprint && matchesProject && matchesStatus;
     });
-  }, [issues, searchQuery, priorityFilter, severityFilter, categoryFilter, sprintFilter, projectFilter, statusFilter]);
+  }, [issues, projects, searchQuery, priorityFilter, severityFilter, categoryFilter, sprintFilter, projectFilter, statusFilter]);
 
   const counts = useMemo(() => {
     return {
@@ -1363,25 +1367,25 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {!isRegistering && (
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Account Role</label>
-                <div className="relative">
-                  <Shield className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <select
-                    value={authRole}
-                    onChange={(e) => setAuthRole(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 cursor-pointer"
-                    required
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Developer">Developer</option>
-                    <option value="User / QA">User / QA</option>
-                  </select>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">Select the role assigned to your registered account.</p>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">Account Role</label>
+              <div className="relative">
+                <Shield className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <select
+                  value={authRole}
+                  onChange={(e) => setAuthRole(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  required
+                >
+                  <option value="Admin">Admin</option>
+                  <option value="Developer">Developer</option>
+                  <option value="User / QA">User / QA</option>
+                </select>
               </div>
-            )}
+              <p className="text-[10px] text-slate-400 mt-1">
+                {isRegistering ? 'Select your role (Admin, Developer, or User / QA).' : 'Select the role assigned to your registered account.'}
+              </p>
+            </div>
 
             <button
               type="submit"
@@ -1688,7 +1692,7 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-3">
                     {projects.map(proj => {
-                      const projIssues = issues.filter(i => i.projectId === proj.id || i.projectName === proj.name);
+                      const projIssues = issues.filter(i => (i.projectId ? Number(i.projectId) === Number(proj.id) : i.projectName === proj.name));
                       const resolvedCount = projIssues.filter(i => i.status === 'Resolved' || i.status === 'Verified' || i.status === 'Closed').length;
                       const percent = projIssues.length ? Math.round((resolvedCount / projIssues.length) * 100) : 0;
 
@@ -2126,7 +2130,9 @@ export default function Dashboard() {
                     <p className="text-xs text-slate-500 line-clamp-2">{p.description}</p>
                     <div className="pt-2 border-t border-slate-100 flex justify-between text-xs text-slate-400">
                       <span>{p.category}</span>
-                      <span className="font-semibold text-slate-700">{p.issueCount || 0} Defects</span>
+                      <span className="font-semibold text-slate-700">
+                        {issues.filter(i => (i.projectId ? Number(i.projectId) === Number(p.id) : i.projectName === p.name)).length} Defects
+                      </span>
                     </div>
                   </div>
                 ))}

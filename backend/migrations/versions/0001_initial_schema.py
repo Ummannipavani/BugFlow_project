@@ -73,6 +73,13 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
     )
     op.create_index(op.f('ix_issues_id'), 'issues', ['id'], unique=False)
+    op.create_index(op.f('ix_issues_status'), 'issues', ['status'], unique=False)
+    op.create_index(op.f('ix_issues_priority'), 'issues', ['priority'], unique=False)
+    op.create_index(op.f('ix_issues_project_id'), 'issues', ['project_id'], unique=False)
+    op.create_index(op.f('ix_issues_reporter_id'), 'issues', ['reporter_id'], unique=False)
+    op.create_index(op.f('ix_issues_assignee_id'), 'issues', ['assignee_id'], unique=False)
+    op.create_index(op.f('ix_issues_sprint_id'), 'issues', ['sprint_id'], unique=False)
+    op.create_index(op.f('ix_issues_created_at'), 'issues', ['created_at'], unique=False)
 
     # 4. Create Comments Table
     op.create_table(
