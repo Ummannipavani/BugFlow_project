@@ -339,83 +339,13 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
         </div>
       </div>
 
-      {/* Grid 3: Repeated Defects & Similar Defects Detection */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Repeated Defects Pattern Detection */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-repeated-defects">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">5. Repeated Defect Detection</h3>
-              <p className="text-xs text-slate-500">Recurring defect signatures and reopened defect instances</p>
-            </div>
-            <AlertOctagon className="w-4 h-4 text-orange-500" />
-          </div>
-
-          <div className="space-y-3">
-            {analytics?.repeatedDefects && analytics.repeatedDefects.length > 0 ? (
-              analytics.repeatedDefects.map((rep, idx) => (
-                <div key={idx} className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate">{rep.pattern}</div>
-                      <div className="text-[11px] text-slate-600 mt-1 flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-amber-800">{rep.occurrences} instance(s)</span>
-                        <span>•</span>
-                        <span className="text-slate-500">Keys: {rep.sampleKeys.join(', ')}</span>
-                      </div>
-                    </div>
-                    {rep.reopenedCount > 0 && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 flex-shrink-0">
-                        Reopened {rep.reopenedCount}x
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-xs text-slate-400 py-6 text-center">No recurring or repeated defect patterns identified.</div>
-            )}
-          </div>
-        </div>
-
-        {/* Similar Defect Clusters / Pair Detection */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-similar-defects">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">6. Similar Defects & Potential Duplicates</h3>
-              <p className="text-xs text-slate-500">Detected semantic/token similarity pairs across active tickets</p>
-            </div>
-            <Sparkles className="w-4 h-4 text-purple-500" />
-          </div>
-
-          <div className="space-y-3">
-            {analytics?.similarDefects && analytics.similarDefects.length > 0 ? (
-              analytics.similarDefects.slice(0, 4).map((sim, idx) => (
-                <div key={idx} className="p-3 bg-purple-50/60 border border-purple-200 rounded-lg">
-                  <div className="flex items-center justify-between text-xs font-semibold text-purple-900 mb-1">
-                    <span className="truncate">{sim.sourceKey} ↔ {sim.targetKey}</span>
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-100 text-purple-700">
-                      {sim.similarityPercentage}% Match
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-600 truncate">{sim.sourceTitle}</div>
-                  <div className="text-[11px] text-slate-500 truncate mt-0.5">Related: {sim.targetTitle}</div>
-                </div>
-              ))
-            ) : (
-              <div className="text-xs text-slate-400 py-6 text-center">No overlapping similar defect pairs detected.</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Grid 4: Sprint Defect Trends & Developer Workload */}
+      {/* Grid 3: Sprint Defect Trends & Developer Workload */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sprint Defect Trends */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-sprint-trends">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">7. Sprint Defect Trends & Velocity</h3>
+              <h3 className="text-sm font-bold text-slate-900">5. Sprint Defect Trends & Velocity</h3>
               <p className="text-xs text-slate-500">Defect resolution completion rate per agile sprint</p>
             </div>
             <Target className="w-4 h-4 text-blue-500" />
@@ -459,7 +389,7 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-developer-workload">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">8. Developer Workload & Completion Rate</h3>
+              <h3 className="text-sm font-bold text-slate-900">6. Developer Workload & Completion Rate</h3>
               <p className="text-xs text-slate-500">Defect distribution and individual resolution velocity</p>
             </div>
             <Users className="w-4 h-4 text-emerald-500" />
@@ -511,7 +441,7 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-severity-distribution">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">9. Severity Distribution</h3>
+              <h3 className="text-sm font-bold text-slate-900">7. Severity Distribution</h3>
               <p className="text-xs text-slate-500">Defect impact classification</p>
             </div>
             <Flame className="w-4 h-4 text-orange-500" />
@@ -563,11 +493,11 @@ export default function AnalyticsDashboard({ projects = [], activeProjectId, onS
         </div>
       </div>
 
-      {/* Grid 6: Defect Discovery vs Resolution Velocity Timeline (Insight 10) */}
+      {/* Grid 5: Defect Discovery vs Resolution Velocity Timeline (Insight 8) */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm" id="insight-defect-trends">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">10. Defect Discovery vs. Resolution Velocity Timeline</h3>
+            <h3 className="text-sm font-bold text-slate-900">8. Defect Discovery vs. Resolution Velocity Timeline</h3>
             <p className="text-xs text-slate-500">Historical trend timeline comparing reported, resolved, and critical defects by date</p>
           </div>
           <div className="flex items-center gap-4 text-xs font-medium">

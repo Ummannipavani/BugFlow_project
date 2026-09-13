@@ -1178,6 +1178,7 @@ export default function Dashboard() {
       const matchesPriority = priorityFilter === 'ALL' || issue.priority === priorityFilter;
       const matchesSeverity = severityFilter === 'ALL' || issue.severity === severityFilter;
       const matchesCategory = categoryFilter === 'ALL' || issue.category === categoryFilter;
+      const matchesSprint = sprintFilter === 'ALL' || String(issue.sprintId) === String(sprintFilter);
       const targetProjName = projectFilter !== 'ALL' ? projects.find(p => String(p.id) === String(projectFilter) || p.name === projectFilter)?.name : null;
       const matchesProject = projectFilter === 'ALL' || 
         String(issue.projectId) === String(projectFilter) || 
